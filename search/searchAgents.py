@@ -288,60 +288,44 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
-        self.startState=(self.startingPosition,self.corners)
-    def getStartState(self):
-        """
-        Returns the start state (in your state space, not the full Pacman state
-        space)
-        """
-        "*** YOUR CODE HERE ***"
-        return self.startState
 
+    def getStartState(self):
+        return (self.startingPosition, [])
+       
     def isGoalState(self, state):
-        """
-        Returns whether this search state is a goal state of the problem.
-        """
-        unicornersnotbeen=state[1]
-        if len(unicornersnotbeen)==0:
-            return True
-        else:
-            return False
+        mystate = state[0]
+        eatenCorners = state[1]
+        if mystate in self.corners:
+            if not mystate in eatenCorners:
+                eatenCorners.append(mystate)
+            return len(eatenCorners) == 4
+        return False
         util.raiseNotDefined()
 
     def getSuccessors(self, state):
-        """
-        Returns successor states, the actions they require, and a cost of 1.
+        x,y = state[0]
+        eatenCorners = state[1]
 
-         As noted in search.py:
-            For a given state, this should return a list of triples, (successor,
-            action, stepCost), where 'successor' is a successor to the current
-            state, 'action' is the action required to get there, and 'stepCost'
-            is the incremental cost of expanding to that successor
-        """
-        successors=[]
+        successors = []
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
 
-            "*** YOUR CODE HERE ***"
-            x,y=state[0]
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
-            hitsWall = self.walls[nextx][nexty]
-            unicornersparklestate=state[1]
-            if not hitsWall:
-                nextgo=(nextx,nexty)
-                if nextgo in unicornersparklestate:
-                    unicornersparklestate=list(unicornersparklestate)
-                    unicornersparklestate.remove(nextgo)
-                    successors.append(((nextgo,tuple(unicornersparklestate)),action,1))
-                else:
-                    successors.append(((nextgo,unicornersparklestate),action,1))
-        self._expanded+=1
+            Wallishere = self.walls[nextx][nexty]
+            if not Wallishere:
+                successoreatenCorners = list(eatenCorners)
+                next_node = (nextx, nexty)
+                if next_node in self.corners:
+                    if not next_node in successoreatenCorners:
+                        successoreatenCorners.append( next_node )
+                successor = ((next_node, successoreatenCorners), action, 1)
+                successors.append(successor)
+
+        self._expanded += 1
+        return successors
+        "*** YOUR CODE HERE ***"
+
+        self._expanded += 1 # DO NOT CHANGE
         return successors
 
     def getCostOfActions(self, actions):
@@ -357,39 +341,17 @@ class CornersProblem(search.SearchProblem):
             if self.walls[x][y]: return 999999
         return len(actions)
 
+
 def cornersHeuristic(state, problem):
-    """
-    A heuristic for the CornersProblem that you defined.
 
-      state:   The current search state
-               (a data structure you chose in your search problem)
-
-      problem: The CornersProblem instance for this layout.
-
-    This function should always return a number that is a lower bound on the
-    shortest path from the state to a goal of the problem; i.e.  it should be
-    admissible (as well as consistent).
-    """
+    
     corners = problem.corners # These are the corner coordinates
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
-    unicornersparklestate = state[1]
-    while True:
-        unicornersparklestate = tuple(unicornersparklestate)
-        uninode = state[0]
-        dis = 0
-        if len(unicornersparklestate) == 0:
-            return dis
-        closestsparkle = unicornersparklestate[0]
-        smallestdistosparkle = abs(uninode[0] - closestsparkle[0]) + abs(uninode[1] - closestsparkle[1])
-        for sparkle in unicornersparklestate:
-            distosparkle = abs(uninode[0] - sparkle[0]) + abs(uninode[1] - sparkle[1])
-            if distosparkle < smallestdistosparkle:
-                smallestdistosparkle = distosparkle
-                closestsparkle = sparkle
-        unicornersparklestate = list(unicornersparklestate)
-        unicornersparklestate.remove(closestsparkle)
-        return smallestdistosparkle 
+    xy1 = state[0]
+    xy2 = self.corner
+    return abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
+    return 0 # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -398,8 +360,8 @@ class AStarCornersAgent(SearchAgent):
         self.searchType = CornersProblem
 
 class FoodSearchProblem:
-    """
-    A search problem associated with finding the a path that collects all of the
+
+    """A search problem associated with finding the a path that collects all of the
     food (dots) in a Pacman game.
 
     A search state in this problem is a tuple ( pacmanPosition, foodGrid ) where
